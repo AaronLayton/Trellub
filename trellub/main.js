@@ -15,19 +15,6 @@ var trellub = (function($, Trello) {
 
 		trelloButton.insertBefore($('.comment-topic-actions > *:nth-child(1)'));
 	},
-
-	loadTrellubHtml = function(){
-		$('body').append('<div id="trellub-container"></div>');
-		$("#trellub-container").load(chrome.extension.getURL('trellub.html'), function(){
-			// Load complete
-			console.info("Trello page loaded in the bg");
-
-			if (onGithub){
-				addTrelloButton();
-			}
-		});
-	},
-
 	setupTrello = function(){
 		// Monitor the task window popup for changes so we can add out button
 		ob = new MutationObserver(function(objs, observer){
@@ -43,21 +30,32 @@ var trellub = (function($, Trello) {
 
 	setupGithub = function(){
 		console.log("Hi there Github");		
+		addTrelloButton();
+	},
+
+	initTrellub = function(){
+		// Create our main container and attach it to the body
+		var trellubContainer = $('<div id="trellub-container"></div>');
+		$('body').append(trellubContainer);
+
+		// Load our templates html into our container
+		trellubContainer.load(chrome.extension.getURL('trellub.html'), function(){
+
+			// Decide which part of the script to kick off
+			if (onTrello)
+				setupTrello();
+			else
+				setupGithub();
+		});
+
+		
 	};
 
-
-
-	loadTrellubHtml();
+	// Start everything!
+	initTrellub();
 	
-
-	if (window.location.href.indexOf("trello") > -1)
-		setupTrello();
-	else
-		setupGithub();
 
 	return {
 		addGithubButton: addGithubButton
 	};
 })(jQuery, Trello);
-
-
