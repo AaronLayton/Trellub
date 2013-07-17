@@ -1,0 +1,28 @@
+{
+	// Required
+	"name": "Trellub",
+	"version": "0.0.1",
+	"manifest_version": 2,
+
+	// Recommended
+	"description": "A neat Chrome extension that provides extra functionality to Trello and Github for managing Tasks and Issues",
+	"icons": { 
+		"128": "icon/logo128.png"
+	},
+
+	"content_scripts": [
+		{
+			"matches": ["https://trello.com/","https://trello.com/*", "https://github.com/*/*/issues/*"],
+			"css": ["css/trellub.css"],
+			"js": ["libs/jquery-2.0.3.min.js", "libs/trello.js", "main.js"]
+		}
+	],
+
+	"permissions": [
+		"https://api.github.com/",
+    	"https://api.trello.com/"
+	],
+	"web_accessible_resources": [
+	    "trellub.html"
+	]
+}
