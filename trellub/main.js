@@ -1,11 +1,19 @@
 var trellub = (function($, Trello) {
 	
 	var version = "0.0.1",
+		onTrello = (window.location.href.indexOf("trello") > -1),
+		onGithub = !onTrello,
 
 	addGithubButton = function(){
-		var githubButton = $($('#gituhub-button-template').html());
+		var githubButton = $($('#github-button-template').html());
 
 		githubButton.insertBefore($('div.other-actions > div > *:nth-child(1)'));
+	},
+
+	addTrelloButton = function(){
+		var trelloButton = $($('#trello-button-template').html());
+
+		trelloButton.insertBefore($('.comment-topic-actions > *:nth-child(1)'));
 	},
 
 	loadTrellubHtml = function(){
@@ -13,6 +21,10 @@ var trellub = (function($, Trello) {
 		$("#trellub-container").load(chrome.extension.getURL('trellub.html'), function(){
 			// Load complete
 			console.info("Trello page loaded in the bg");
+
+			if (onGithub){
+				addTrelloButton();
+			}
 		});
 	},
 
@@ -30,7 +42,7 @@ var trellub = (function($, Trello) {
 	},
 
 	setupGithub = function(){
-		console.log("Hi there Github");
+		console.log("Hi there Github");		
 	};
 
 
