@@ -20,7 +20,8 @@
 
 	"permissions": [
 		"https://api.github.com/",
-    	"https://api.trello.com/"
+    	"https://api.trello.com/",
+    	"http://www.validatethis.co.uk/trellub"
 	],
 	"web_accessible_resources": [
 	    "trellub.html"
