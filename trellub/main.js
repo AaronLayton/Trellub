@@ -9,6 +9,29 @@ var trellub = (function($, Trello) {
 		var githubButton = $($('#github-button-template').html());
 
 		githubButton.insertBefore($('div.other-actions > div > *:nth-child(1)'));
+		githubButton.on("click", showAddGithubIssue);
+	},
+
+	showAddGithubIssue = function(){
+		console.log("Show the Add to Github window");
+
+		$.ajax({
+			url:'https://api.github.com/user/repos',
+			type:'GET',
+			headers:{'Authorization':'token ' + githubKey},
+			data: {
+				sort:"updated"
+			},
+			success:function(data, textStatus, jqXHR) {
+				console.log(data);
+				$.each(data, function(i,e){
+					console.log(e.full_name);
+				})
+			},
+			error:function(jqXHR, textStatus, errorThrown) {
+				console.log("Fetching error");
+			}
+		});
 	},
 
 	addTrelloButton = function(){
@@ -33,21 +56,19 @@ var trellub = (function($, Trello) {
       		return; // No need to reauthenticate
 
       	$.ajax({
-      		url: "http://www.validatethis.co.uk/trellub",
+      		url: "http://www.validatethis.co.uk/trellub/",
       		type: "post",
-      		async: false,
-      		contentType: "application/json",
-      		data: JSON.stringify({
-      			code: code
-      		}),
+			data: {
+				code:code
+			},
+			dataType: "json",
       		success: function(data) {
-      			console.log(data);
-
       			githubKey = data['access_token'];
 
-      			if (githubKey != null)
+      			if (githubKey != null){
 					localStorage.setItem('trellub_githubKey', githubKey);
-		        else {
+					console.info("Trellub: Successfully authenticated Github");
+		        } else {
 					console.warn("Trellub: Github did not authenticate");
 		        }
       		},
@@ -83,8 +104,6 @@ var trellub = (function($, Trello) {
 	},
 
 	initTrellub = function(){
-
-		authenticateGithub();
 		
 		// Create our main container and attach it to the body
 		var trellubContainer = $('<div id="trellub-container"></div>');
@@ -94,10 +113,12 @@ var trellub = (function($, Trello) {
 		trellubContainer.load(chrome.extension.getURL('trellub.html'), function(){
 
 			// Decide which part of the script to kick off
-			if (onTrello)
+			if (onTrello){
+				authenticateGithub();
 				setupTrello();
-			else
+			} else {
 				setupGithub();
+			}
 		});
 
 		
