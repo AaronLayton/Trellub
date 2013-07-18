@@ -14,24 +14,6 @@ var trellub = (function($, Trello) {
 
 	showAddGithubIssue = function(){
 		console.log("Show the Add to Github window");
-
-		$.ajax({
-			url:'https://api.github.com/user/repos',
-			type:'GET',
-			headers:{'Authorization':'token ' + githubKey},
-			data: {
-				sort:"updated"
-			},
-			success:function(data, textStatus, jqXHR) {
-				console.log(data);
-				$.each(data, function(i,e){
-					console.log(e.full_name);
-				})
-			},
-			error:function(jqXHR, textStatus, errorThrown) {
-				console.log("Fetching error");
-			}
-		});
 	},
 
 	addTrelloButton = function(){
@@ -47,13 +29,15 @@ var trellub = (function($, Trello) {
 
 		if (getParameterByName("code") != null){ // If we have been passed a code then we need to reauth 
 			code = getParameterByName("code");
-		}else if (githubKey == null) { // If we have no token and no code, get a new code
+		}else if (githubKey == null) { // If we have no access_token and no code, get a new code
 			location.href = 'https://github.com/login/oauth/authorize?client_id=0d34021d0ebc2363b2a0&scope=repo&redirect_uri='+location.href
       		return;
 		}
 
-		if (code == null && githubKey != null)
+		if (code == null && githubKey != null){
+			updateLocalRepos();
       		return; // No need to reauthenticate
+		}
 
       	$.ajax({
       		url: "http://www.validatethis.co.uk/trellub/",
@@ -76,6 +60,43 @@ var trellub = (function($, Trello) {
       			console.warn("Trellub: Trouble with the proxy page, quick call the doctor");
       		}
       	});
+	},
+
+	updateLocalRepos = function(){
+		githubKey =  localStorage.getItem("trellub_githubKey");
+
+		if (githubKey == null)
+			return authenticateGithub();
+
+		$.ajax({
+			url:'https://api.github.com/user/repos',
+			type:'GET',
+			headers:{'Authorization':'token ' + githubKey},
+			data: {
+				sort:"updated"
+			},
+			success:function(data, textStatus, jqXHR) {
+				console.log(data);
+				$.each(data, function(i,e){
+					console.log(e.full_name);
+				})
+			},
+			error:function(jqXHR, textStatus, errorThrown) {
+				console.warn("Trellub: Trouble with fetching Repo list");
+			}
+		});
+	},
+
+	addToKnownRepos = function(repo) {
+		var knownRepos = JSON.parse(localStorage.getItem('knownRepos'));
+
+		if (knownRepos == null)
+			knownRepos = [];
+
+		if (knownRepos.indexOf(repo) === -1)
+			knownRepos.push(repo);
+		
+		localStorage.setItem('knownRepos', JSON.stringify(knownRepos));
 	},
 
 	getParameterByName = function(name) {
