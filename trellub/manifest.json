@@ -14,7 +14,7 @@
 		{
 			"matches": ["https://trello.com/","https://trello.com/*", "https://github.com/*/*/issues/*"],
 			"css": ["css/trellub.css"],
-			"js": ["libs/jquery-2.0.3.min.js", "libs/trello.js", "main.js"]
+			"js": ["libs/jquery-2.0.3.min.js", "libs/bootstrap-typeahead.js", "libs/trello.js", "main.js"]
 		}
 	],
 

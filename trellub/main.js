@@ -10,10 +10,22 @@ var trellub = (function($, Trello) {
 
 		githubButton.insertBefore($('div.other-actions > div > *:nth-child(1)'));
 		githubButton.on("click", showAddGithubIssue);
+			
+		$('.button-link:not(.js-github-issue)').click(function(e){
+			$('#github-popover').hide();
+		});
 	},
 
 	showAddGithubIssue = function(){
 		console.log("Show the Add to Github window");
+
+		var popoverOffset = $(this).offset();
+		popoverOffset.top += $(this).height() + 18;
+		// Having to set by CSS as offet() was doubling up the values
+		$('#github-popover').css({
+			top: popoverOffset.top,
+			left: popoverOffset.left
+		}).show();
 	},
 
 	addTrelloButton = function(){
@@ -51,6 +63,7 @@ var trellub = (function($, Trello) {
 
       			if (githubKey != null){
 					localStorage.setItem('trellub_githubKey', githubKey);
+					updateLocalRepos();
 					console.info("Trellub: Successfully authenticated Github");
 		        } else {
 					console.warn("Trellub: Github did not authenticate");
@@ -76,9 +89,8 @@ var trellub = (function($, Trello) {
 				sort:"updated"
 			},
 			success:function(data, textStatus, jqXHR) {
-				console.log(data);
 				$.each(data, function(i,e){
-					console.log(e.full_name);
+					addToKnownRepos(e.full_name);
 				})
 			},
 			error:function(jqXHR, textStatus, errorThrown) {
@@ -88,7 +100,7 @@ var trellub = (function($, Trello) {
 	},
 
 	addToKnownRepos = function(repo) {
-		var knownRepos = JSON.parse(localStorage.getItem('knownRepos'));
+		var knownRepos = JSON.parse(localStorage.getItem('trellub_knownRepos'));
 
 		if (knownRepos == null)
 			knownRepos = [];
@@ -96,7 +108,7 @@ var trellub = (function($, Trello) {
 		if (knownRepos.indexOf(repo) === -1)
 			knownRepos.push(repo);
 		
-		localStorage.setItem('knownRepos', JSON.stringify(knownRepos));
+		localStorage.setItem('trellub_knownRepos', JSON.stringify(knownRepos));
 	},
 
 	getParameterByName = function(name) {
@@ -104,6 +116,74 @@ var trellub = (function($, Trello) {
 	    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
 	        results = regex.exec(location.search);
 	    return results == null ? null : decodeURIComponent(results[1].replace(/\+/g, " "));
+	},
+
+	setupGithubPopup = function(){
+
+		$('.js-close-github-popover').click(function(e){
+			$('#github-popover').hide();
+		});
+		$('body').click(function(e) {
+			if ($(e.target).parents().index($('#github-popover') == -1)) 
+				$('#github-popover').hide();
+		});
+
+		$('.js-create-github-issue').click(createIssue);
+
+		// Add auto complete for repo names
+		$('#github-repo').typeahead({
+			source:JSON.parse(localStorage.getItem('trellub_knownRepos')),
+			items:4
+		});
+
+		// Todo: Validation
+		$('#issue-title').blur(function(e){
+			validate('#issue-title');
+		});
+
+		$('#github-repo').blur(function(e) {
+			validate('#github-repo')
+		});
+
+		$('#github-popover').keyup(function(e){
+			if (e.keyCode === 27) { // if it's the escape key
+				$('#github-popover').hide();
+				e.stopPropagation();
+				document.activeElement.blur();
+			}
+		});
+	},
+
+	createGithubIssue = function(event) {
+		if (!['#github-repo', '#issue-title'].map(function(e){return validate(e);}).reduce(function(p, c, i, a){return p&&c;}, true))
+			return;
+
+		if (githubKey == null)
+			return githubAuth();
+
+		// 
+	},
+
+	validators = {
+		'#github-repo': function(){
+			var good = (/^[^\s\/]+\/[^\s\/]+$/.test($('#github-repo').val()));
+			$('#github-repo').toggleClass('input-error', !good);
+			return good;
+		},
+		'#issue-title':function(){
+			var good =  $('#issue-title').val().length > 0;
+			$('#issue-title').toggleClass('input-error', !good);
+			return good;
+		}
+	},
+
+	validate = function(id) {
+		var validator = validators[id];
+
+		if (typeof validator !== 'function')
+			return null;
+
+		return validator();
 	},
 
 	setupTrello = function(){
@@ -116,7 +196,14 @@ var trellub = (function($, Trello) {
 		});
 
 		//trigger ob's callback every time the style attribute on window changes
-		ob.observe($('.window')[0], {attributes:true, attributeFilter:['style'], attributeOldValue:true})
+		ob.observe($('.window')[0], {attributes:true, attributeFilter:['style'], attributeOldValue:true});
+
+		// If there is already a card open (creates 2 sometimes?)
+		if ($('.window').is(':visible')){
+			addGithubButton();
+		}
+
+		setupGithubPopup();
 	},
 
 	setupGithub = function(){

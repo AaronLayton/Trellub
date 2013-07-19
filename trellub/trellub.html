@@ -10,3 +10,33 @@
 		<a href="#" class="button blue minibutton">View on Trello</a>
 	</li>
 </script>
+
+
+<div id="github-popover" class="pop-over clearfix fancy-scrollbar trellub-to-github">
+	<div class="header clearfix">
+		<a class="back-btn js-back-view" href="#" style="display: none;">
+			<span class="icon-sm icon-leftarrow"></span>
+		</a>
+		<span class="header-title">GitHub Issue</span>
+		<a class="close-btn js-close-github-popover" href="#">
+			<span class="icon-sm icon-close"></span>
+		</a>
+	</div>
+	<div class="content clearfix" style="">
+		<div>
+			<form>
+				<label for="github-repo">GitHub Repository</label>
+				<input type="text" id="github-repo" class="t2g-input" placeholder="username/repo" autofocus autocomplete="off" data-provide="typeahead">
+
+				<label for="issue-title">Issue Title</label>
+				<input type="text" id="issue-title" class="t2g-input" placeholder="Title">
+
+				<label for="issue-description">Issue Description</label>
+				<textarea type="textarea" id="issue-description" class="t2g-input" placeholder="Describe the issue..."></textarea>
+
+				<button type="button" class="primary wide js-create-github-issue">Submit</button>
+			</form>
+		</div>
+	</div>
+</div>
+
