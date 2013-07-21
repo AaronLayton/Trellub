@@ -17,8 +17,6 @@ var trellub = (function($, Trello) {
 	},
 
 	showAddGithubIssue = function(){
-		console.log("Show the Add to Github window");
-
 		var popoverOffset = $(this).offset();
 		popoverOffset.top += $(this).height() + 18;
 		// Having to set by CSS as offet() was doubling up the values
@@ -26,6 +24,11 @@ var trellub = (function($, Trello) {
 			top: popoverOffset.top,
 			left: popoverOffset.left
 		}).show();
+
+		// Prepopulate Title and Description
+		$('#issue-title').val($('.window-title-text').text());
+		$('#issue-description').val($('.card-detail-desc').text().trim());
+		
 	},
 
 	addTrelloButton = function(){
@@ -91,7 +94,26 @@ var trellub = (function($, Trello) {
 			success:function(data, textStatus, jqXHR) {
 				$.each(data, function(i,e){
 					addToKnownRepos(e.full_name);
-				})
+				});
+
+				var knownRepos = JSON.parse(localStorage.getItem('trellub_knownRepos'))
+					lastRepo = localStorage.getItem('trellub_lastUsedRepo');
+
+				// Update the Github issue select
+				var repoSelect = $('.js-trellub-repo-list').empty();
+				$.each(knownRepos, function (i, item) {
+					var thisOption = { 
+				        text : item
+				    };
+				    if (item == lastRepo) thisOption.selected = "selected";
+				    repoSelect.append($('<option>', thisOption));
+				});
+
+				repoSelect.chosen({
+					width:"100%"
+				}).on("change", function(e){
+					localStorage.setItem('trellub_lastUsedRepo', $('.js-trellub-repo-list option:selected').text());
+				});
 			},
 			error:function(jqXHR, textStatus, errorThrown) {
 				console.warn("Trellub: Trouble with fetching Repo list");
@@ -99,7 +121,7 @@ var trellub = (function($, Trello) {
 		});
 	},
 
-	addToKnownRepos = function(repo) {
+	addToKnownRepos = function(repo) {		
 		var knownRepos = JSON.parse(localStorage.getItem('trellub_knownRepos'));
 
 		if (knownRepos == null)
@@ -109,6 +131,7 @@ var trellub = (function($, Trello) {
 			knownRepos.push(repo);
 		
 		localStorage.setItem('trellub_knownRepos', JSON.stringify(knownRepos));
+
 	},
 
 	getParameterByName = function(name) {
@@ -124,17 +147,14 @@ var trellub = (function($, Trello) {
 			$('#github-popover').hide();
 		});
 		$('body').click(function(e) {
-			if ($(e.target).parents().index($('#github-popover') == -1)) 
+			if ($(e.target).parents().index($('#github-popover')) == -1){
 				$('#github-popover').hide();
+			}
 		});
 
-		$('.js-create-github-issue').click(createIssue);
 
-		// Add auto complete for repo names
-		$('#github-repo').typeahead({
-			source:JSON.parse(localStorage.getItem('trellub_knownRepos')),
-			items:4
-		});
+
+		$('.js-create-github-issue').click(createGithubIssue);
 
 		// Todo: Validation
 		$('#issue-title').blur(function(e){
@@ -155,13 +175,61 @@ var trellub = (function($, Trello) {
 	},
 
 	createGithubIssue = function(event) {
-		if (!['#github-repo', '#issue-title'].map(function(e){return validate(e);}).reduce(function(p, c, i, a){return p&&c;}, true))
-			return;
 
 		if (githubKey == null)
 			return githubAuth();
 
-		// 
+		// Get board vars
+		var pathparts = location.pathname.split('/');
+		var boardId = pathparts[pathparts.length - 2];
+		var cardShortId = pathparts[pathparts.length - 1];
+
+		// Get some authenticationz so we can create boards
+		Trello.authorize({
+			type: "popup", 
+			scope: {
+				read:true,
+				write:true,
+				account:false
+			}, 
+			name: "Trellub", 
+			success:function() {
+				
+				// TODO: Get a Card with all Github outstandings
+				/*
+				Trello.get('/boards/' + boardId + '/cards/' + cardShortId, {checklists:'all'}, function(card) {
+					console.log(card);
+				});
+				*/
+
+				// Send the issue to Github
+				var repo = $('#github-repo').val();
+				var title = $('#issue-title').val();
+				var description = $('#issue-description').val() + '\n\n' + cardShortId;
+
+				$.ajax({
+					url:'https://api.github.com/repos/' + repo + '/issues',
+					type:'POST',
+					headers:{'Authorization':'token ' + githubKey},
+					contentType:'application/json',
+					data:JSON.stringify({
+						title:title,
+						body:description
+					}),
+					success:function(data, textStatus, jqXHR) {
+						//alert("Issue now in Github");
+						console.log(data);
+					},
+					error:function(jqXHR, textStatus, errorThrown) {
+						alert('github api error');
+					}
+				});
+
+			}, 
+			error: function() {
+				alert('Trellub: Sorry we need to be authenticated with Trello to continue');
+			}
+		});
 	},
 
 	validators = {
@@ -187,6 +255,9 @@ var trellub = (function($, Trello) {
 	},
 
 	setupTrello = function(){
+
+		authenticateGithub();
+
 		// Monitor the task window popup for changes so we can add out button
 		ob = new MutationObserver(function(objs, observer){
 		  var wasHidden = $.inArray('visibility: hidden', $.map(objs, function(o){return o['oldValue'];}).join().split(/;,? ?/)) != -1;
@@ -222,7 +293,6 @@ var trellub = (function($, Trello) {
 
 			// Decide which part of the script to kick off
 			if (onTrello){
-				authenticateGithub();
 				setupTrello();
 			} else {
 				setupGithub();
